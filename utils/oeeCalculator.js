@@ -1,7 +1,7 @@
 const { InfluxDB, Point } = require('@influxdata/influxdb-client');
 const { oeeLogger, errorLogger } = require('../utils/logger');
 const { influxdb, oeeAsPercent } = require('../config/config');
-const { getPlannedDowntime, getunplannedDowntime, } = require('../utils/downtimeManager');
+const { loadDataAndPrepareChart } = require('../utils/downtimeManager');
 const { loadProcessOrderData } = require('../src/dataLoader');
 const path = require('path');
 
@@ -112,17 +112,28 @@ class OEECalculator {
         this.validateInput();
 
         const { plannedProduction, runtime, targetPerformance, goodProducts, totalProduction, ProcessOrderNumber, StartTime, EndTime } = this.oeeData;
-        oeeLogger.info(`Calculating metrics for ProcessOrderNumber: ${ProcessOrderNumber}`);
+        oeeLogger.debug(`Calculating metrics for ProcessOrderNumber: ${ProcessOrderNumber}`);
 
-        // Calculate unplanned downtime
-        const unplannedDowntimeMinutes = await getunplannedDowntime(ProcessOrderNumber);
-        oeeLogger.debug(`Unplanned downtime minutes: ${unplannedDowntimeMinutes}`);
-        const actualUnplannedDowntime = unplannedDowntimeMinutes !== undefined ? unplannedDowntimeMinutes : 10;
+        // Use the precomputed data from loadDataAndPrepareChart
+        const { chartData } = loadDataAndPrepareChart();
 
-        // Calculate planned downtime
-        const plannedDowntimeMinutes = await getPlannedDowntime(ProcessOrderNumber, StartTime, EndTime);
-        oeeLogger.debug(`Planned downtime minutes: ${plannedDowntimeMinutes}`);
-        const actualPlannedDowntime = plannedDowntimeMinutes !== undefined ? plannedDowntimeMinutes : 10;
+        let totalProductionTime = 0;
+        let totalBreakTime = 0;
+        let totalUnplannedDowntime = 0;
+        let totalPlannedDowntime = 0;
+
+        chartData.datasets[0].data.forEach(time => totalProductionTime += time);
+        chartData.datasets[1].data.forEach(time => totalBreakTime += time);
+        chartData.datasets[2].data.forEach(time => totalUnplannedDowntime += time);
+        chartData.datasets[3].data.forEach(time => totalPlannedDowntime += time);
+
+        oeeLogger.debug(`Total production time: ${totalProductionTime}`);
+        oeeLogger.debug(`Total break time: ${totalBreakTime}`);
+        oeeLogger.debug(`Total unplanned downtime: ${totalUnplannedDowntime}`);
+        oeeLogger.debug(`Total planned downtime: ${totalPlannedDowntime}`);
+
+        const actualUnplannedDowntime = totalUnplannedDowntime !== undefined ? totalUnplannedDowntime : 10;
+        const actualPlannedDowntime = (totalPlannedDowntime + totalBreakTime) !== undefined ? (totalPlannedDowntime + totalBreakTime) : 10;
 
         const operatingTime = runtime - (actualUnplannedDowntime / 60) - (actualPlannedDowntime / 60);
 
