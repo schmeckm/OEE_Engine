@@ -117,7 +117,7 @@ wss.on('connection', (ws, req) => {
                 // Broadcast the updated data to all connected clients
                 wss.clients.forEach(client => {
                     if (client.readyState === WebSocket.OPEN) {
-                        client.send(JSON.stringify({ type: 'machineData', data: updatedStoppages }));
+                        client.send(JSON.stringify({ type: 'Microstops', data: updatedStoppages }));
                     }
                 });
             });

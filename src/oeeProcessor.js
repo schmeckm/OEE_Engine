@@ -1,6 +1,6 @@
 const { oeeLogger, errorLogger } = require('../utils/logger');
 const { OEECalculator, writeOEEToInfluxDB } = require('../utils/oeeCalculator');
-const { getUnplannedDowntime, getPlannedDowntime, loadDataAndPrepareChart } = require('../utils/downtimeManager');
+const { getUnplannedDowntime, getPlannedDowntime, loadDataAndPrepareOEE } = require('../utils/downtimeManager');
 const { influxdb, structure } = require('../config/config');
 const { setWebSocketServer, sendWebSocketMessage } = require('./webSocketUtils');
 const moment = require('moment-timezone');
@@ -28,7 +28,29 @@ async function processMetrics() {
     try {
         oeeLogger.info('Starting metrics processing.');
         await oeeCalculator.init();
-        await oeeCalculator.calculateMetrics();
+
+        // Load chart data and prepare OEE data
+        let OEEData;
+        try {
+            OEEData = loadDataAndPrepareOEE();
+        } catch (chartError) {
+            errorLogger.error(`Error loading or preparing chart data: ${chartError.message}`);
+            return;
+        }
+
+        // Calculate the total times from the chart data
+        const totalProductionTime = OEEData.datasets[0].data.reduce((a, b) => a + b, 0);
+        const totalBreakTime = OEEData.datasets[1].data.reduce((a, b) => a + b, 0);
+        const totalUnplannedDowntime = OEEData.datasets[2].data.reduce((a, b) => a + b, 0);
+        const totalPlannedDowntime = OEEData.datasets[3].data.reduce((a, b) => a + b, 0);
+
+        oeeLogger.info(`Total production time: ${totalProductionTime}`);
+        oeeLogger.info(`Total break time: ${totalBreakTime}`);
+        oeeLogger.info(`Total unplanned downtime: ${totalUnplannedDowntime}`);
+        oeeLogger.info(`Total planned downtime: ${totalPlannedDowntime}`);
+
+        // Calculate metrics using the new total times
+        await oeeCalculator.calculateMetrics(totalUnplannedDowntime, totalPlannedDowntime + totalBreakTime);
 
         const metrics = oeeCalculator.getMetrics();
         const { oee, availability, performance, quality, ProcessOrderNumber, StartTime, EndTime, plannedProduction, machine_id } = metrics;
@@ -43,18 +65,6 @@ async function processMetrics() {
         oeeLogger.info(`Calculated Performance: ${performance}`);
         oeeLogger.info(`Calculated Quality: ${quality}`);
         oeeLogger.info(`Calculated OEE: ${oee}% (Level: ${level})`);
-
-        // Calculate downtime
-        let plannedDowntime;
-        let unplannedDowntime;
-        try {
-            plannedDowntime = await getPlannedDowntime(ProcessOrderNumber, StartTime, EndTime);
-            unplannedDowntime = await getUnplannedDowntime(ProcessOrderNumber);
-        } catch (downtimeError) {
-            errorLogger.error(`Error calculating downtime: ${downtimeError.message}`);
-            plannedDowntime = 0;
-            unplannedDowntime = 0;
-        }
 
         // Convert StartTime and EndTime to the desired timezone
         const startTimeInTimezone = moment.tz(StartTime, "UTC").tz(TIMEZONE).format();
@@ -72,8 +82,8 @@ async function processMetrics() {
                 StartTime: startTimeInTimezone,
                 EndTime: endTimeInTimezone,
                 plannedProduction,
-                plannedDowntime,
-                unplannedDowntime,
+                plannedDowntime: totalPlannedDowntime, // Use the new total planned downtime
+                unplannedDowntime: totalUnplannedDowntime, // Use the new total unplanned downtime
                 machine_id
             }
         };
@@ -86,23 +96,15 @@ async function processMetrics() {
         sendWebSocketMessage('oeeData', roundedMetrics);
 
         if (influxdb.url && influxdb.token && influxdb.org && influxdb.bucket) {
-            await writeOEEToInfluxDB(oee, availability, performance, quality, { group_id: structure.Group_id, edge_node_id: structure.edge_node_id });
+            await writeOEEToInfluxDB(oee, availability, performance, quality, { group_id: structure.Group_id, edge_node_id: structure.edge_node_id, ProcessOrderNumber });
             oeeLogger.info('Metrics written to InfluxDB.');
         }
 
-        // Load chart data and send it via WebSocket
-        let chartData;
-        try {
-            chartData = loadDataAndPrepareChart();
-        } catch (chartError) {
-            errorLogger.error(`Error loading or preparing chart data: ${chartError.message}`);
-            return;
-        }
-
-        sendWebSocketMessage('chartData', chartData);
+        // Send chart data via WebSocket
+        sendWebSocketMessage('OEEData', OEEData);
 
         // Log chart data
-        oeeLogger.info(`Chart Data: ${JSON.stringify(chartData)}`);
+        oeeLogger.info(`Chart Data: ${JSON.stringify(OEEData)}`);
 
     } catch (error) {
         errorLogger.error(`Error calculating metrics: ${error.message}`);

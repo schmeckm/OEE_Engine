@@ -1,24 +1,18 @@
 const fs = require('fs');
 const path = require('path');
 const moment = require('moment');
-const { oeeLogger, errorLogger } = require('../utils/logger'); // Ensure the logger is correctly imported
+const { oeeLogger, errorLogger } = require('../utils/logger');
 
 const unplannedDowntimeFilePath = path.resolve(__dirname, '../data/unplannedDowntime.json');
 const plannedDowntimeFilePath = path.resolve(__dirname, '../data/plannedDowntime.json');
 const processOrderFilePath = path.resolve(__dirname, '../data/processOrder.json');
 const shiftModelFilePath = path.resolve(__dirname, '../data/shiftModel.json');
 
-// Caches für die Daten
 let unplannedDowntimeCache = null;
 let plannedDowntimeCache = null;
 let processOrderDataCache = null;
 let shiftModelDataCache = null;
 
-/**
- * Load JSON data from a file and log its content.
- * @param {string} filePath - The path to the JSON file.
- * @returns {Object} The parsed JSON data.
- */
 function loadJsonData(filePath) {
     try {
         oeeLogger.debug(`Loading JSON data from ${filePath}`);
@@ -32,10 +26,6 @@ function loadJsonData(filePath) {
     }
 }
 
-/**
- * Lädt und cached die ungeplanten Ausfallzeiten.
- * @returns {Object} Die ungeplanten Ausfallzeiten.
- */
 function loadUnplannedDowntimeData() {
     if (!unplannedDowntimeCache) {
         unplannedDowntimeCache = loadJsonData(unplannedDowntimeFilePath);
@@ -44,10 +34,6 @@ function loadUnplannedDowntimeData() {
     return unplannedDowntimeCache;
 }
 
-/**
- * Lädt und cached die geplanten Ausfallzeiten.
- * @returns {Object} Die geplanten Ausfallzeiten.
- */
 function loadPlannedDowntimeData() {
     if (!plannedDowntimeCache) {
         plannedDowntimeCache = loadJsonData(plannedDowntimeFilePath);
@@ -56,10 +42,6 @@ function loadPlannedDowntimeData() {
     return plannedDowntimeCache;
 }
 
-/**
- * Load process order data once and cache it.
- * @returns {Object} The process order data.
- */
 function loadProcessOrderData() {
     if (!processOrderDataCache) {
         processOrderDataCache = loadJsonData(processOrderFilePath);
@@ -68,10 +50,6 @@ function loadProcessOrderData() {
     return processOrderDataCache;
 }
 
-/**
- * Load shift model data once and cache it.
- * @returns {Object} The shift model data.
- */
 function loadShiftModelData() {
     if (!shiftModelDataCache) {
         shiftModelDataCache = loadJsonData(shiftModelFilePath);
@@ -80,22 +58,10 @@ function loadShiftModelData() {
     return shiftModelDataCache;
 }
 
-/**
- * Parse a date string into a Moment.js object in UTC.
- * @param {string} dateStr - The date string.
- * @returns {Object} Moment.js object.
- */
 function parseDate(dateStr) {
     return moment.utc(dateStr);
 }
 
-/**
- * Filter downtimes that fall within the specified start and end times.
- * @param {Array} downtimes - The downtimes data.
- * @param {Object} startTime - The start time.
- * @param {Object} endTime - The end time.
- * @returns {Array} Filtered downtimes.
- */
 function filterDowntime(downtimes, startTime, endTime) {
     return downtimes.filter(downtime => {
         const start = parseDate(downtime.Start);
@@ -104,16 +70,9 @@ function filterDowntime(downtimes, startTime, endTime) {
     });
 }
 
-/**
- * Akkumuliert die Ausfallzeitdifferenz für eine bestimmte ProcessOrderNumber.
- * @param {string} processOrderNumber - Die ProcessOrderNumber.
- * @returns {number} Die ungeplante Ausfallzeit in Minuten.
- */
-function getunplannedDowntime(processOrderNumber) {
+function getUnplannedDowntime(processOrderNumber) {
     try {
         const unplannedDowntimeEntries = loadUnplannedDowntimeData();
-
-        // Differenzen für die angegebene ProcessOrderNumber summieren
         const totalDowntimeMinutes = unplannedDowntimeEntries.reduce((total, entry) => {
             if (entry.ProcessOrderNumber === processOrderNumber) {
                 total += entry.Differenz;
@@ -121,9 +80,7 @@ function getunplannedDowntime(processOrderNumber) {
             return total;
         }, 0);
 
-        // Akkumulierte Ausfallzeit protokollieren
         oeeLogger.info(`Total accumulated unplanned downtime for ProcessOrderNumber ${processOrderNumber}: ${totalDowntimeMinutes} minutes`);
-
         return totalDowntimeMinutes;
     } catch (error) {
         errorLogger.error(`Error reading or processing unplannedDowntime.json: ${error.message}`);
@@ -131,13 +88,6 @@ function getunplannedDowntime(processOrderNumber) {
     }
 }
 
-/**
- * Berechnet die gesamte geplante Ausfallzeit.
- * @param {string} processOrderNumber - Die ProcessOrderNumber.
- * @param {string} startTime - Der Startzeitpunkt des Prozessauftrags.
- * @param {string} endTime - Der Endzeitpunkt des Prozessauftrags.
- * @returns {number} Die gesamte geplante Ausfallzeit in Minuten.
- */
 function getPlannedDowntime(processOrderNumber, startTime, endTime) {
     try {
         const plannedDowntimeEntries = loadPlannedDowntimeData();
@@ -147,7 +97,7 @@ function getPlannedDowntime(processOrderNumber, startTime, endTime) {
         const totalDowntimeMinutes = plannedDowntimeEntries.reduce((total, entry) => {
             if (!entry.Start || !entry.End) {
                 oeeLogger.warn(`Undefined Start or End in entry: ${JSON.stringify(entry)}`);
-                return total; // Skip this entry
+                return total;
             }
 
             const entryStart = parseDate(entry.Start).valueOf();
@@ -165,7 +115,6 @@ function getPlannedDowntime(processOrderNumber, startTime, endTime) {
         }, 0);
 
         oeeLogger.info(`Total accumulated planned downtime for ProcessOrderNumber ${processOrderNumber}: ${totalDowntimeMinutes} minutes`);
-
         return totalDowntimeMinutes;
     } catch (error) {
         errorLogger.error(`Error reading or processing plannedDowntime.json: ${error.message}`);
@@ -173,31 +122,16 @@ function getPlannedDowntime(processOrderNumber, startTime, endTime) {
     }
 }
 
-/**
- * Function to calculate the break duration in minutes.
- * @param {string} breakStart - The break start time (HH:mm format).
- * @param {string} breakEnd - The break end time (HH:mm format).
- * @returns {number} The break duration in minutes.
- */
 function calculateBreakDuration(breakStart, breakEnd) {
     const breakStartTime = moment(breakStart, "HH:mm");
     const breakEndTime = moment(breakEnd, "HH:mm");
     return breakEndTime.diff(breakStartTime, 'minutes');
 }
 
-/**
- * Filter and calculate durations within the process order.
- * @param {Object} processOrder - The process order data.
- * @param {Array} plannedDowntime - Array of planned downtime data.
- * @param {Array} unplannedDowntime - Array of unplanned downtime data.
- * @param {Array} shifts - Array of shift model data.
- * @returns {Object} Filtered and calculated durations.
- */
 function filterAndCalculateDurations(processOrder, plannedDowntime, unplannedDowntime, shifts) {
     const orderStart = parseDate(processOrder.Start).startOf('hour');
     const orderEnd = parseDate(processOrder.End).endOf('hour');
 
-    // Filter planned and unplanned downtimes within the process order
     const filteredPlannedDowntime = plannedDowntime.filter(downtime => {
         const start = parseDate(downtime.Start);
         const end = parseDate(downtime.End);
@@ -210,14 +144,12 @@ function filterAndCalculateDurations(processOrder, plannedDowntime, unplannedDow
         return (start.isBetween(orderStart, orderEnd, null, '[)') || end.isBetween(orderStart, orderEnd, null, '(]'));
     });
 
-    // Calculate the break duration for shifts within the process order
     const filteredBreaks = shifts.flatMap(shift => {
         const shiftStart = moment.utc(`${moment(orderStart).format('YYYY-MM-DD')} ${shift.shift_start_time}`, "YYYY-MM-DD HH:mm");
         const shiftEnd = moment.utc(`${moment(orderStart).format('YYYY-MM-DD')} ${shift.shift_end_time}`, "YYYY-MM-DD HH:mm");
         const breakStart = moment.utc(`${moment(orderStart).format('YYYY-MM-DD')} ${shift.break_start}`, "YYYY-MM-DD HH:mm");
         const breakEnd = moment.utc(`${moment(orderStart).format('YYYY-MM-DD')} ${shift.break_end}`, "YYYY-MM-DD HH:mm");
 
-        // Adjust breakStart and breakEnd if they cross midnight
         if (breakEnd.isBefore(breakStart)) {
             breakEnd.add(1, 'day');
         }
@@ -242,32 +174,21 @@ function filterAndCalculateDurations(processOrder, plannedDowntime, unplannedDow
     };
 }
 
-/**
- * Load data and prepare chart data.
- * @returns {Object} Chart data.
- */
-function loadDataAndPrepareChart() {
+function loadDataAndPrepareOEE() {
     try {
-        oeeLogger.info('Loading data and preparing chart data.');
+        oeeLogger.info('Loading data and preparing OEE data.');
         const processOrders = loadProcessOrderData();
         const plannedDowntime = loadPlannedDowntimeData();
         const unplannedDowntime = loadUnplannedDowntimeData();
         const shifts = loadShiftModelData();
 
-        // Assuming only one process order for simplicity
         const processOrder = processOrders[0];
-
-        // Log process order details
         oeeLogger.debug(`Process order details: ${JSON.stringify(processOrder, null, 2)}`);
 
-        // Filter and calculate durations
         const durations = filterAndCalculateDurations(processOrder, plannedDowntime, unplannedDowntime, shifts);
-
-        // Log filtered durations
         oeeLogger.debug(`Filtered durations: ${JSON.stringify(durations, null, 2)}`);
 
-        // Prepare chart data
-        const chartData = {
+        const OEEData = {
             labels: [],
             datasets: [
                 { label: 'Production', data: [], backgroundColor: 'green' },
@@ -277,26 +198,22 @@ function loadDataAndPrepareChart() {
             ]
         };
 
-        // Start time based on process order start time rounded to the nearest hour
         let currentTime = parseDate(processOrder.Start).startOf('hour');
         const orderEnd = parseDate(processOrder.End).endOf('hour');
 
-        // Log rounded start and end times
         oeeLogger.debug(`Rounded order start time: ${currentTime.format()}`);
         oeeLogger.debug(`Rounded order end time: ${orderEnd.format()}`);
 
-        // Calculate intervals
         while (currentTime.isBefore(orderEnd)) {
             const nextTime = currentTime.clone().add(1, 'hour');
 
-            chartData.labels.push(currentTime.toISOString()); // Store in ISO format
+            OEEData.labels.push(currentTime.toISOString());
 
             let productionTime = nextTime.diff(currentTime, 'minutes');
             let breakTime = 0;
             let unplannedDowntime = 0;
             let plannedDowntime = 0;
 
-            // Subtract break time
             durations.breaks.forEach(breakInfo => {
                 const breakStart = moment(breakInfo.breakStart);
                 const breakEnd = moment(breakInfo.breakEnd);
@@ -308,7 +225,6 @@ function loadDataAndPrepareChart() {
                 }
             });
 
-            // Subtract unplanned downtime
             durations.unplannedDowntime.forEach(downtime => {
                 const downtimeStart = parseDate(downtime.Start);
                 const downtimeEnd = parseDate(downtime.End);
@@ -319,7 +235,6 @@ function loadDataAndPrepareChart() {
                 }
             });
 
-            // Subtract planned downtime
             durations.plannedDowntime.forEach(downtime => {
                 const downtimeStart = parseDate(downtime.Start);
                 const downtimeEnd = parseDate(downtime.End);
@@ -332,39 +247,36 @@ function loadDataAndPrepareChart() {
 
             productionTime -= (breakTime + unplannedDowntime + plannedDowntime);
 
-            // Log each interval's times
             oeeLogger.debug(`Interval ${currentTime.format("HH:mm")} - ${nextTime.format("HH:mm")}:`);
             oeeLogger.debug(`  Production time: ${productionTime} minutes`);
             oeeLogger.debug(`  Break time: ${breakTime} minutes`);
             oeeLogger.debug(`  Unplanned downtime: ${unplannedDowntime} minutes`);
             oeeLogger.debug(`  Planned downtime: ${plannedDowntime} minutes`);
 
-            chartData.datasets[0].data.push(productionTime);
-            chartData.datasets[1].data.push(breakTime);
-            chartData.datasets[2].data.push(unplannedDowntime);
-            chartData.datasets[3].data.push(plannedDowntime);
+            OEEData.datasets[0].data.push(productionTime);
+            OEEData.datasets[1].data.push(breakTime);
+            OEEData.datasets[2].data.push(unplannedDowntime);
+            OEEData.datasets[3].data.push(plannedDowntime);
 
             currentTime = nextTime;
         }
 
-        oeeLogger.info('Chart data prepared successfully.');
-        oeeLogger.info(`Chart Data: ${JSON.stringify(chartData)}`);
+        oeeLogger.info('OEE data prepared successfully.');
+        oeeLogger.info(`OEE Data: ${JSON.stringify(OEEData)}`);
 
-        return chartData;
-
+        return OEEData;
     } catch (error) {
-        errorLogger.error(`Error loading or preparing chart data: ${error.message}`);
+        errorLogger.error(`Error loading or preparing OEE data: ${error.message}`);
         throw error;
     }
 }
 
-
 module.exports = {
-    getunplannedDowntime,
+    getUnplannedDowntime,
     getPlannedDowntime,
     loadProcessOrderData,
     loadUnplannedDowntimeData,
     loadPlannedDowntimeData,
     loadShiftModelData,
-    loadDataAndPrepareChart
+    loadDataAndPrepareOEE
 };

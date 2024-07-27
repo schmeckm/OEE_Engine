@@ -16,7 +16,7 @@ let processOrderData = null;
 // Use the threshold value from the config
 const THRESHOLD_SECONDS = config.thresholdSeconds;
 
-// Path to the MachineData.json file
+// Path to the Microstops.json file
 const dbFilePath = path.join(__dirname, '../data/machineStoppages.json');
 
 // Load environment variables
@@ -73,8 +73,8 @@ try {
 
 // Send initial machine stoppages data to WebSocket clients
 try {
-    const initialMachineData = loadAndConvertMachineStoppagesData();
-    sendWebSocketMessage('machineData', initialMachineData);
+    const initialMicrostops = loadAndConvertMachineStoppagesData();
+    sendWebSocketMessage('Microstops', initialMicrostops);
 } catch (error) {
     errorLogger.error(`Failed to load initial machine stoppages data: ${error.message}`);
 }
@@ -98,7 +98,7 @@ function handleHoldCommand(value) {
             }
             currentHoldStatus[processOrderNumber].push({ timestamp });
 
-            console.log(`Hold signal recorded in MachineData.json at ${timestamp}`);
+            console.log(`Hold signal recorded in Microstops.json at ${timestamp}`);
         } else {
             oeeLogger.warn('No valid process order data found. Hold signal ignored.');
         }
@@ -147,28 +147,28 @@ function handleUnholdCommand(value) {
                     };
 
                     try {
-                        let machineData = [];
+                        let Microstops = [];
                         if (fs.existsSync(dbFilePath)) {
-                            const machineDataContent = fs.readFileSync(dbFilePath, 'utf8');
+                            const MicrostopsContent = fs.readFileSync(dbFilePath, 'utf8');
                             try {
-                                machineData = JSON.parse(machineDataContent);
+                                Microstops = JSON.parse(MicrostopsContent);
                             } catch (jsonError) {
-                                oeeLogger.warn('MachineData.json is empty or invalid. Initializing with an empty array.');
-                                machineData = [];
+                                oeeLogger.warn('Microstops.json is empty or invalid. Initializing with an empty array.');
+                                Microstops = [];
                             }
                         }
 
-                        machineData.push(machineStoppageEntry);
+                        Microstops.push(machineStoppageEntry);
 
-                        fs.writeFileSync(dbFilePath, JSON.stringify(machineData, null, 2), 'utf8');
-                        console.log(`Unhold signal recorded in MachineData.json at ${timestamp}`);
+                        fs.writeFileSync(dbFilePath, JSON.stringify(Microstops, null, 2), 'utf8');
+                        console.log(`Unhold signal recorded in Microstops.json at ${timestamp}`);
                         console.log(`Downtime for Order ${processOrderNumber}: ${downtimeSeconds} seconds`);
 
                         // Senden der aktualisierten Maschinendaten an WebSocket-Clients
-                        sendWebSocketMessage('machineData', machineData);
+                        sendWebSocketMessage('Microstops', Microstops);
 
                     } catch (error) {
-                        console.error('Error writing MachineData.json:', error.message);
+                        console.error('Error writing Microstops.json:', error.message);
                     }
                 } else {
                     oeeLogger.info(`Downtime of ${downtimeSeconds} seconds did not meet the threshold of ${THRESHOLD_SECONDS} seconds. No entry recorded.`);

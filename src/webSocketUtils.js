@@ -16,7 +16,7 @@ function setWebSocketServer(server) {
         // Send initial machine stoppages data to the newly connected client
         try {
             const machineStoppagesData = loadMachineStoppagesData();
-            sendWebSocketMessage('machineData', machineStoppagesData);
+            sendWebSocketMessage('Microstops', machineStoppagesData);
             oeeLogger.info('Initial machine stoppages data sent to WebSocket client.');
         } catch (error) {
             errorLogger.error(`Error sending initial machine stoppages data: ${error.message}`);

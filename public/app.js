@@ -23,7 +23,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 const { type, data } = JSON.parse(event.data);
                 console.log("Data received from WebSocket:", { type, data });
 
-                if (type === 'chartData') {
+                if (type === 'OEEData') {
                     console.log("Received chart data:", data);
                     updateTimelineChart(timelineChart, data);
                 } else if (type === 'oeeData') {
@@ -33,7 +33,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     updateGauge(availabilityGauge, data.availability, 'availabilityValue');
                     updateGauge(performanceGauge, data.performance, 'performanceValue');
                     updateGauge(qualityGauge, data.quality, 'qualityValue');
-                } else if (type === 'machineData') {
+                } else if (type === 'Microstops') {
                     if (Array.isArray(data)) {
                         console.log("Received machine data:", data);
                         updateInterruptionTable(data);
@@ -79,9 +79,9 @@ document.addEventListener("DOMContentLoaded", () => {
         if (processData) {
             updateProcessData(processData);
         }
-        const machineData = getCurrentMachineData();
-        if (machineData) {
-            updateInterruptionTable(machineData);
+        const Microstops = getCurrentMicrostops();
+        if (Microstops) {
+            updateInterruptionTable(Microstops);
         }
     });
 
@@ -107,8 +107,8 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 let currentProcessData = null; // Speichere die aktuellen Prozessdaten
-let currentMachineData = null; // Speichere die aktuellen Maschinendaten
-let currentChartData = null; // Speichere die aktuellen Diagrammdaten
+let currentMicrostops = null; // Speichere die aktuellen Maschinendaten
+let currentOEEData = null; // Speichere die aktuellen Diagrammdaten
 
 function updateProcessData(processData) {
     currentProcessData = processData; // Speichere die Daten für zukünftige Verwendungen
@@ -127,8 +127,8 @@ function getCurrentProcessData() {
     return currentProcessData;
 }
 
-function getCurrentMachineData() {
-    return currentMachineData;
+function getCurrentMicrostops() {
+    return currentMicrostops;
 }
 
 function initGauge(elementId, label) {
@@ -211,7 +211,7 @@ function initTimelineChart(elementId) {
 }
 
 function updateTimelineChart(chart, data) {
-    currentChartData = data; // Speichere die Daten für zukünftige Verwendungen
+    currentOEEData = data; // Speichere die Daten für zukünftige Verwendungen
     const timeZone = document.getElementById("timeZone").value;
 
     if (data.labels && data.datasets) {
@@ -248,7 +248,7 @@ function updateCurrentTime() {
 }
 
 function updateInterruptionTable(data) {
-    currentMachineData = data; // Speichere die Daten für zukünftige Verwendungen
+    currentMicrostops = data; // Speichere die Daten für zukünftige Verwendungen
     const tableBody = document.querySelector("#interruptionTable tbody");
     tableBody.innerHTML = ""; // Bestehende Tabellendaten löschen
 
@@ -319,7 +319,7 @@ function drop(event) {
         messageQueue.push(JSON.stringify({ type: 'updateRating', data: updatedData }));
     }
 
-    currentMachineData.forEach(entry => {
+    currentMicrostops.forEach(entry => {
         if (entry.ID === valueId) {
             entry.Reason = rating;
         }

@@ -1,7 +1,9 @@
 [{
     "order_id": 1,
     "ProcessOrderNumber": "47111",
-    "Start": "2024-07-14T05:15:13.507Z",
+    "MaterialNumber": "1019292",
+    "MaterialDescription": "Super Medicine",
+    "Start": "2024-07-14T04:15:13.507Z",
     "End": "2024-07-14T20:15:18.427Z",
     "setupTime": 60,
     "processingTime": 120,
