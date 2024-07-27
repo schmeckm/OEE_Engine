@@ -67,5 +67,12 @@ module.exports = {
     api: {
         plannedDowntimeUrl: envVars.PLANNED_DOWNTIME_API_URL
     },
-    thresholdSeconds: envVars.THRESHOLD_SECONDS // Add the threshold to the module exports
+    thresholdSeconds: envVars.THRESHOLD_SECONDS, // Add the threshold to the module exports
+    ratings: [
+            { id: 1, description: 'Maintenance', color: 'orange' },
+            { id: 2, description: 'Operator Error', color: 'red' },
+            { id: 3, description: 'Machine Fault', color: 'blue' },
+            { id: 4, description: 'Unknown', color: 'gray' },
+            { id: 5, description: 'IT-OT', color: 'green' }
+        ] // Add ratings here
 };

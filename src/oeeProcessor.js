@@ -1,6 +1,6 @@
 const { oeeLogger, errorLogger } = require('../utils/logger');
 const { OEECalculator, writeOEEToInfluxDB } = require('../utils/oeeCalculator');
-const { getUnplannedDowntime, getPlannedDowntime, loadDataAndPrepareOEE } = require('../utils/downtimeManager');
+const { loadDataAndPrepareOEE } = require('../utils/downtimeManager');
 const { influxdb, structure } = require('../config/config');
 const { setWebSocketServer, sendWebSocketMessage } = require('./webSocketUtils');
 const moment = require('moment-timezone');
@@ -53,7 +53,7 @@ async function processMetrics() {
         await oeeCalculator.calculateMetrics(totalUnplannedDowntime, totalPlannedDowntime + totalBreakTime);
 
         const metrics = oeeCalculator.getMetrics();
-        const { oee, availability, performance, quality, ProcessOrderNumber, StartTime, EndTime, plannedProduction, machine_id } = metrics;
+        const { oee, availability, performance, quality, ProcessOrderNumber, StartTime, EndTime, plannedProduction, machine_id, MaterialNumber, MaterialDescription } = metrics;
 
         if (!metrics) {
             throw new Error('Metrics could not be calculated or are undefined.');
@@ -71,6 +71,7 @@ async function processMetrics() {
         const endTimeInTimezone = moment.tz(EndTime, "UTC").tz(TIMEZONE).format();
 
         // Prepare payload
+        // Prepare payload
         const roundedMetrics = {
             oee: Math.round(oee * 100) / 100,
             availability: Math.round(availability * 10000) / 100,
@@ -84,6 +85,8 @@ async function processMetrics() {
                 plannedProduction,
                 plannedDowntime: totalPlannedDowntime, // Use the new total planned downtime
                 unplannedDowntime: totalUnplannedDowntime, // Use the new total unplanned downtime
+                MaterialNumber: MaterialNumber, // Add MaterialNumber
+                MaterialDescription: MaterialDescription, // Add MaterialDescription
                 machine_id
             }
         };
@@ -96,7 +99,7 @@ async function processMetrics() {
         sendWebSocketMessage('oeeData', roundedMetrics);
 
         if (influxdb.url && influxdb.token && influxdb.org && influxdb.bucket) {
-            await writeOEEToInfluxDB(oee, availability, performance, quality, { group_id: structure.Group_id, edge_node_id: structure.edge_node_id, ProcessOrderNumber });
+            await writeOEEToInfluxDB(roundedMetrics); // Pass the entire metrics object
             oeeLogger.info('Metrics written to InfluxDB.');
         }
 

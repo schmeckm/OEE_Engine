@@ -1,21 +1,37 @@
 /* Base styles for the body element */
 
+.bold-text {
+    font-weight: bold;
+}
+
 body {
     font-family: Arial, sans-serif;
+    /* Font family for the body */
     background-color: #121212;
+    /* Background color for the body */
     color: #ffffff;
+    /* Text color for the body */
     margin: 20px;
+    /* Margin around the body */
 }
 
 .header {
     display: flex;
+    /* Flexbox layout for the header */
     justify-content: space-between;
+    /* Space between header elements */
     align-items: center;
+    /* Center align header elements */
     background-color: #1e1e1e;
+    /* Background color for the header */
     padding: 10px;
+    /* Padding inside the header */
     border-radius: 10px;
+    /* Rounded corners for the header */
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    /* Box shadow for the header */
     margin-bottom: 20px;
+    /* Margin below the header */
 }
 
 .description,
@@ -23,111 +39,241 @@ body {
 .line-code,
 .current-time {
     margin: 0 10px;
+    /* Margin for these elements */
 }
 
 .main {
     display: flex;
+    /* Flexbox layout for the main content */
     height: calc(100vh - 100px);
+    /* Full height minus header and margins */
 }
 
 .left-column {
     width: 40%;
+    /* Width of the left column */
     display: flex;
+    /* Flexbox layout for the left column */
     flex-direction: column;
+    /* Column direction for flex items */
     align-items: center;
+    /* Center align flex items */
 }
 
 .right-column {
     width: 50%;
+    /* Width of the right column */
     display: flex;
+    /* Flexbox layout for the right column */
     flex-direction: column;
+    /* Column direction for flex items */
 }
 
 .top-section {
     padding: 10px;
+    /* Padding inside the top section */
     background-color: #2e2e2e;
+    /* Background color for the top section */
     border-bottom: 1px solid #444;
+    /* Bottom border for the top section */
     display: flex;
+    /* Flexbox layout for the top section */
     flex-wrap: wrap;
+    /* Wrap flex items to new line */
     gap: 10px;
+    /* Gap between flex items */
     margin-bottom: 10px;
+    /* Margin below the top section */
 }
 
 .bottom-section {
     flex: 1;
+    /* Grow to fill remaining space */
     padding: 20px;
+    /* Padding inside the bottom section */
     background-color: #2e2e2e;
+    /* Background color for the bottom section */
     overflow-x: auto;
-    /* Add horizontal scrolling */
+    /* Horizontal scrolling */
 }
 
 .gauge-wrapper.large {
     margin-bottom: 20px;
+    /* Margin below large gauge wrapper */
 }
 
 .gauge-container {
     display: flex;
+    /* Flexbox layout for the gauge container */
     justify-content: space-between;
+    /* Space between gauge items */
     width: 100%;
+    /* Full width for the gauge container */
 }
 
 .gauge-wrapper.small {
     display: flex;
+    /* Flexbox layout for the small gauge wrapper */
     flex-direction: column;
+    /* Column direction for flex items */
     align-items: center;
+    /* Center align flex items */
     margin-bottom: 20px;
+    /* Margin below small gauge wrapper */
     width: 30%;
+    /* Width of small gauge wrapper */
     height: 200px;
+    /* Height of small gauge wrapper */
     margin-right: 10px;
+    /* Margin to the right of small gauge wrapper */
 }
+
+
+/* Style for gauge labels */
 
 .gauge-wrapper .gauge-label {
     margin-top: 10px;
+    /* Margin above gauge label */
     font-size: 16px;
+    /* Font size for gauge label */
     font-weight: bold;
+    /* Bold font for gauge label */
     text-align: center;
+    /* Center text alignment */
+    border-radius: 5px;
+    /* Rounded corners for gauge label */
 }
+
+
+/* Style for gauge values */
 
 .gauge-wrapper .gauge-value {
     margin-top: 5px;
+    /* Margin above gauge value */
     font-size: 14px;
+    /* Font size for gauge value */
     color: #ffffff;
+    /* Text color for gauge value */
     text-align: center;
+    /* Center text alignment */
+    border-radius: 5px;
+    /* Rounded corners for gauge value */
+}
+
+.oee-level {
+    margin-top: 10px;
+    /* Margin above OEE level */
+    text-align: center;
+    /* Center text alignment */
+    color: #ffffff;
+    /* Default text color for OEE level */
+    font-size: 16px;
+    /* Default font size for OEE level */
+    background-color: #2e2e2e;
+    /* Background color for OEE level */
+    padding: 10px;
+    /* Padding inside OEE level */
+    font-weight: bold;
+    /* Bold font for the EEE level */
+    border-radius: 5px;
+    /* Rounded corners for OEE level */
+    position: absolute;
+    /* Absolute positioning for OEE level */
+    bottom: 20px;
+    /* Distance from bottom */
+    width: 20%;
+    /* Width of OEE level */
+    left: 20%;
+    /* Center horizontally */
+    transform: translateX(-50%);
+    /* Center alignment */
+}
+
+
+/* Style for OEE level labels */
+
+.oee-level .gauge-label {
+    font-size: 20px;
+    /* Font size for OEE level label */
+    border-radius: 5px;
+    /* Rounded corners for OEE level label */
+}
+
+
+/* Style for OEE level values */
+
+.oee-level .gauge-value {
+    font-size: 40px;
+    /* Font size for OEE level value */
+    color: #003cff;
+    /* Default color for OEE level value */
+    border-radius: 5px;
+    /* Rounded corners for OEE level value */
+}
+
+
+/* Additional styles for further customization */
+
+.oee-level:hover {
+    background-color: #444444;
+    /* Change background color on hover */
+    color: #ffcc00;
+    /* Change text color on hover */
+    cursor: pointer;
+    /* Change cursor to pointer on hover */
+}
+
+.oee-level .gauge-value::after {
+    font-size: 16px;
+    /* Font size for the additional text */
+    color: #ff0000;
+    /* Color for the additional text */
 }
 
 canvas {
     display: block;
+    /* Display as block element */
     margin: auto;
+    /* Center canvas horizontally */
     margin-bottom: 10px;
+    /* Margin below canvas */
 }
 
 #timelineChart {
     width: 100%;
+    /* Full width for timeline chart */
     height: 130px;
+    /* Height for timeline chart */
 }
 
 .chartjs-render-monitor .gauge .background {
     stroke: #eee;
+    /* Stroke color for gauge background */
 }
 
 .chartjs-render-monitor .gauge .needle {
     stroke: #333;
+    /* Stroke color for gauge needle */
 }
 
 .chartjs-render-monitor .gauge .value {
     stroke: #333;
+    /* Stroke color for gauge value */
 }
 
 .chartjs-render-monitor .gauge .value[data-value='low'] {
     stroke: #f44336;
+    /* Stroke color for low value */
 }
 
 .chartjs-render-monitor .gauge .value[data-value='medium'] {
     stroke: #ffeb3b;
+    /* Stroke color for medium value */
 }
 
 .chartjs-render-monitor .gauge .value[data-value='high'] {
     stroke: #4caf50;
+    /* Stroke color for high value */
 }
 
 
@@ -135,52 +281,87 @@ canvas {
 
 .menu {
     width: 10%;
-    background-color: #1e1e1e;
+    /* Width of the menu */
     padding: 10px;
+    /* Padding inside the menu */
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    /* Box shadow for the menu */
     border-radius: 10px;
+    /* Rounded corners for the menu */
+    position: fixed;
+    /* Use fixed position for the menu */
+    top: 70px;
+    /* Adjust this value to move the menu down */
+    right: 0px;
+    /* Adjust this value to move the menu to the right */
+    background-color: transparent;
+    /* Make the background transparent */
 }
 
 .accordion {
     background-color: #333;
+    /* Background color for the accordion button */
     color: #fff;
+    /* Text color for the accordion button */
     cursor: pointer;
+    /* Cursor style for the accordion button */
     padding: 10px;
+    /* Padding inside the accordion button */
     width: 100%;
+    /* Full width for the accordion button */
     border: none;
+    /* No border for the accordion button */
     text-align: left;
+    /* Left text alignment for the accordion button */
     outline: none;
+    /* No outline for the accordion button */
     font-size: 18px;
+    /* Font size for the accordion button */
     transition: 0.4s;
+    /* Transition effect for the accordion button */
     border-radius: 5px;
+    /* Rounded corners for the accordion button */
 }
 
 .panel {
     padding: 0 10px;
+    /* Padding inside the panel */
     display: none;
-    background-color: #1e1e1e;
+    /* Hide the panel */
+    background-color: transparent;
+    /* Make the background transparent */
     overflow: hidden;
+    /* Hide overflow content */
     border-radius: 5px;
+    /* Rounded corners for the panel */
     margin-top: 10px;
+    /* Margin above the panel */
 }
 
 .menu ul {
     list-style-type: none;
+    /* No bullets for the list */
     padding: 0;
+    /* No padding for the list */
 }
 
 .menu ul li {
     margin: 10px 0;
+    /* Margin for the list items */
 }
 
 .menu ul li a {
     text-decoration: none;
+    /* No underline for the links */
     color: #fff;
+    /* Text color for the links */
     font-weight: bold;
+    /* Bold font for the links */
 }
 
 .menu ul li a:hover {
     color: #007BFF;
+    /* Text color on hover */
 }
 
 
@@ -188,33 +369,77 @@ canvas {
 
 #interruptionTable {
     width: 100%;
+    /* Full width for the table */
     border-collapse: collapse;
+    /* Collapse borders */
     margin-top: 20px;
+    /* Margin above the table */
     min-width: 800px;
-    /* Ensure table is wide enough for content */
+    /* Minimum width for the table */
     font-size: 12px;
-    /* Smaller font size for the table */
+    /* Font size for the table */
 }
 
 #interruptionTable th,
 #interruptionTable td {
     border: 1px solid #444;
+    /* Border for table cells */
     padding: 8px;
-    /* Smaller padding */
+    /* Padding inside table cells */
     text-align: left;
+    /* Left text alignment */
 }
 
 #interruptionTable th {
     background-color: #333;
+    /* Background color for table headers */
     color: #fff;
+    /* Text color for table headers */
     font-weight: bold;
+    /* Bold font for table headers */
     font-size: 12px;
-    /* Smaller font size for the table headers */
+    /* Font size for table headers */
 }
 
 #interruptionTable td {
     background-color: #1e1e1e;
+    /* Background color for table cells */
     color: #fff;
+    /* Text color for table cells */
     font-size: 12px;
-    /* Smaller font size for the table data */
+    /* Font size for table cells */
+}
+
+
+/* Styles for the rating labels */
+
+.rating-label {
+    display: inline-block;
+    /* Inline-block layout for the rating label */
+    padding: 5px 10px;
+    /* Padding inside the rating label */
+    margin: 5px;
+    /* Margin around the rating label */
+    background-color: lightgray;
+    /* Background color for the rating label */
+    cursor: move;
+    /* Move cursor on hover */
+    border-radius: 3px;
+    /* Rounded corners for the rating label */
+    font-size: 12px;
+    /* Font size for the rating label */
+    font-weight: bold;
+    /* Bold font for the rating label */
+    color: #ffffff;
+    /* Text color for the rating label */
+    text-align: center;
+    /* Center text alignment */
+}
+
+
+/* Styles for Material Description */
+
+#materialDescription {
+    font-weight: bold;
+    /* Make Material Description bold */
 }

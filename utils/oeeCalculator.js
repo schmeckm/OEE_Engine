@@ -4,6 +4,7 @@ const { influxdb, oeeAsPercent } = require('../config/config');
 const { loadDataAndPrepareOEE } = require('../utils/downtimeManager');
 const { loadProcessOrderData } = require('../src/dataLoader');
 
+// Constants for OEE classification
 const VALID_SCORE_THRESHOLD = 1.0;
 const MINIMUM_SCORE_THRESHOLD = 0.0;
 const CLASSIFICATION_LEVELS = {
@@ -13,14 +14,18 @@ const CLASSIFICATION_LEVELS = {
     AVERAGE: 0.4,
 };
 
+// OEECalculator class handles the calculation and management of OEE metrics
 class OEECalculator {
     constructor() {
-        this.resetOEEData();
+        this.resetOEEData(); // Initialize OEE data
     }
 
+    // Reset OEE data to default values
     resetOEEData() {
         this.oeeData = {
             ProcessOrderNumber: null,
+            MaterialNumber: null,
+            MaterialDescription: null,
             plannedProduction: 0,
             runtime: 0,
             actualPerformance: 0,
@@ -35,44 +40,51 @@ class OEECalculator {
         };
     }
 
+    // Initialize OEE data with process order data
     async init() {
         try {
             const processOrderData = await loadProcessOrderData();
             oeeLogger.info(`Loaded process order data: ${JSON.stringify(processOrderData)}`);
-            this.validateProcessOrderData(processOrderData);
-            this.setOEEData(processOrderData[0]);
+            this.validateProcessOrderData(processOrderData); // Validate the data
+            this.setOEEData(processOrderData[0]); // Set the OEE data
         } catch (error) {
             errorLogger.error(`Error initializing OEECalculator: ${error.message}`);
             throw error;
         }
     }
 
+    // Validate the process order data
     validateProcessOrderData(data) {
         if (!data || !Array.isArray(data) || data.length === 0) {
             throw new Error('Process order data is null or undefined');
         }
 
-        const { ProcessOrderNumber, setupTime, processingTime, teardownTime, totalPartsToBeProduced, Start, End } = data[0];
-        if (!ProcessOrderNumber || setupTime == null || processingTime == null || teardownTime == null || totalPartsToBeProduced == null || Start == null || End == null) {
+        const { ProcessOrderNumber, setupTime, processingTime, teardownTime, totalPartsToBeProduced, Start, End, MaterialNumber, MaterialDescription } = data[0];
+        if (!ProcessOrderNumber || setupTime == null || processingTime == null || teardownTime == null || totalPartsToBeProduced == null || Start == null || End == null || MaterialNumber == null || MaterialDescription == null) {
             throw new Error('Invalid process order data: One or more required fields are missing.');
         }
     }
 
+    // Set OEE data with validated process order data
     setOEEData(data) {
-        const { ProcessOrderNumber, setupTime, processingTime, teardownTime, totalPartsToBeProduced, Start, End } = data;
+        const { ProcessOrderNumber, setupTime, processingTime, teardownTime, totalPartsToBeProduced, Start, End, MaterialNumber, MaterialDescription } = data;
         this.oeeData.ProcessOrderNumber = ProcessOrderNumber;
         this.oeeData.plannedProduction = setupTime + processingTime + teardownTime;
         this.oeeData.runtime = setupTime + processingTime + teardownTime;
         this.oeeData.targetPerformance = totalPartsToBeProduced;
         this.oeeData.StartTime = Start;
         this.oeeData.EndTime = End;
+        this.oeeData.MaterialNumber = MaterialNumber;
+        this.oeeData.MaterialDescription = MaterialDescription;
     }
 
+    // Update specific OEE metric
     updateData(metric, value) {
         oeeLogger.debug(`Updating ${metric} with value: ${value}`);
         this.oeeData[metric] = value;
     }
 
+    // Validate input OEE data before calculation
     validateInput() {
         const { plannedProduction, runtime, actualPerformance, targetPerformance, goodProducts, totalProduction } = this.oeeData;
         oeeLogger.debug(`Validating input data: ${JSON.stringify(this.oeeData)}`);
@@ -86,10 +98,11 @@ class OEECalculator {
         if (goodProducts > totalProduction) throw new Error('Invalid input data: goodProducts cannot be greater than totalProduction');
     }
 
+    // Calculate OEE metrics
     async calculateMetrics() {
         this.validateInput();
 
-        const { plannedProduction, runtime, targetPerformance, goodProducts, totalProduction, ProcessOrderNumber, StartTime, EndTime } = this.oeeData;
+        const { plannedProduction, runtime, targetPerformance, goodProducts, totalProduction, ProcessOrderNumber, StartTime, EndTime, MaterialNumber, MaterialDescription } = this.oeeData;
         oeeLogger.info(`Calculating metrics for ProcessOrderNumber: ${ProcessOrderNumber}`);
 
         try {
@@ -106,7 +119,7 @@ class OEECalculator {
             oeeLogger.info(`Total planned downtime: ${totalPlannedDowntime}`);
 
             // Log input values
-            oeeLogger.info(`Input values - plannedProduction: ${plannedProduction}, runtime: ${runtime}, targetPerformance: ${targetPerformance}, goodProducts: ${goodProducts}, totalProduction: ${totalProduction}`);
+            oeeLogger.info(`Input values - plannedProduction: ${plannedProduction}, runtime: ${runtime}, targetPerformance: ${targetPerformance}, goodProducts: ${goodProducts}, totalProduction: ${totalProduction}, MaterialNumber: ${MaterialNumber}, MaterialDescription: ${MaterialDescription}`);
 
             // Perform OEE calculation
             this.calculateOEE(plannedProduction, runtime, targetPerformance, goodProducts, totalProduction, totalUnplannedDowntime, totalPlannedDowntime + totalBreakTime);
@@ -119,6 +132,7 @@ class OEECalculator {
         }
     }
 
+    // Calculate OEE and its components: availability, performance, and quality
     calculateOEE(plannedProduction, runtime, targetPerformance, goodProducts, totalProduction, actualUnplannedDowntime, actualPlannedDowntime) {
         const operatingTime = runtime - (actualUnplannedDowntime / 60) - (actualPlannedDowntime / 60);
 
@@ -134,6 +148,7 @@ class OEECalculator {
         this.oeeData.classification = this.classifyOEE(this.oeeData.oee / 100);
     }
 
+    // Classify OEE based on predefined levels
     classifyOEE(score) {
         if (score > VALID_SCORE_THRESHOLD || score < MINIMUM_SCORE_THRESHOLD) {
             throw new Error(`Invalid input: score must be between ${MINIMUM_SCORE_THRESHOLD} and ${VALID_SCORE_THRESHOLD}`);
@@ -145,6 +160,7 @@ class OEECalculator {
         return "Poor";
     }
 
+    // Get calculated OEE metrics
     getMetrics() {
         return this.oeeData;
     }
@@ -152,6 +168,7 @@ class OEECalculator {
 
 let writeApi = null;
 
+// Initialize InfluxDB write API
 try {
     if (influxdb.url && influxdb.token && influxdb.org && influxdb.bucket) {
         const influxDB = new InfluxDB({ url: influxdb.url, token: influxdb.token });
@@ -163,7 +180,8 @@ try {
     errorLogger.error(`InfluxDB initialization error: ${error.message}`);
 }
 
-async function writeOEEToInfluxDB(oee, availability, performance, quality, metadata, ProcessOrderNumber) {
+// Function to write OEE metrics to InfluxDB
+async function writeOEEToInfluxDB(metrics) {
     if (!writeApi) {
         errorLogger.error('InfluxDB write API is not initialized.');
         return;
@@ -171,22 +189,26 @@ async function writeOEEToInfluxDB(oee, availability, performance, quality, metad
 
     try {
         const point = new Point('oee')
-            .tag('plant', metadata.group_id)
+            .tag('plant', metrics.processData.group_id)
             .tag('area', 'Packaging')
-            .tag('line', metadata.edge_node_id)
-            .tag('processOrderNumber', ProcessOrderNumber);
+            .tag('line', metrics.processData.edge_node_id)
 
-        Object.keys(metadata).forEach(key => {
-            if (typeof metadata[key] !== 'object') {
-                point.tag(key, metadata[key]);
+        // Add all additional tags from metrics.processData
+        Object.keys(metrics.processData).forEach(key => {
+            if (typeof metrics.processData[key] !== 'object') {
+                point.tag(key, metrics.processData[key]);
             }
         });
 
+        // Add fields
         point
-            .floatField('oee', oeeAsPercent ? oee : oee / 100)
-            .floatField('availability', oeeAsPercent ? availability * 100 : availability)
-            .floatField('performance', oeeAsPercent ? performance * 100 : performance)
-            .floatField('quality', oeeAsPercent ? quality * 100 : quality);
+            .floatField('oee', oeeAsPercent ? metrics.oee : metrics.oee / 100)
+            .floatField('availability', oeeAsPercent ? metrics.availability * 100 : metrics.availability)
+            .floatField('performance', oeeAsPercent ? metrics.performance * 100 : metrics.performance)
+            .floatField('quality', oeeAsPercent ? metrics.quality * 100 : metrics.quality)
+            .floatField('plannedProduction', metrics.processData.plannedProduction)
+            .floatField('plannedDowntime', metrics.processData.plannedDowntime)
+            .floatField('unplannedDowntime', metrics.processData.unplannedDowntime);
 
         writeApi.writePoint(point);
         await writeApi.flush();

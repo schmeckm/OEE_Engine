@@ -12,7 +12,7 @@ const {
 dotenv.config();
 
 const { defaultLogger, errorLogger } = require('./utils/logger');
-const { logRetentionDays } = require('./config/config');
+const { logRetentionDays, ratings } = require('./config/config'); // Import ratings from config
 const { setupMqttClient } = require('./src/mqttClient');
 const { handleErrors } = require('./utils/middleware');
 const { setWebSocketServer } = require('./src/oeeProcessor'); // Import WebSocket setter
@@ -37,12 +37,6 @@ app.get('/timezone', (req, res) => {
 
 // Endpoint to get rating labels
 app.get('/ratings', (req, res) => {
-    const ratings = [
-        { id: 1, description: 'Maintenance', color: 'orange' },
-        { id: 2, description: 'Operator Error', color: 'red' },
-        { id: 3, description: 'Machine Fault', color: 'blue' },
-        { id: 4, description: 'Unknown', color: 'gray' }
-    ];
     res.json(ratings);
 });
 

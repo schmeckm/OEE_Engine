@@ -33,6 +33,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     updateGauge(availabilityGauge, data.availability, 'availabilityValue');
                     updateGauge(performanceGauge, data.performance, 'performanceValue');
                     updateGauge(qualityGauge, data.quality, 'qualityValue');
+                    updateOEELevel(data.level); // Update OEE Level
                 } else if (type === 'Microstops') {
                     if (Array.isArray(data)) {
                         console.log("Received machine data:", data);
@@ -115,6 +116,8 @@ function updateProcessData(processData) {
     const timeZone = document.getElementById("timeZone").value;
 
     document.getElementById("orderNumber").innerText = processData.ProcessOrderNumber;
+    document.getElementById("materialNumber").innerText = processData.MaterialNumber;
+    document.getElementById("materialDescription").innerText = processData.MaterialDescription;
     document.getElementById("startTime").innerText = moment.tz(processData.StartTime, "UTC").tz(timeZone).format("YYYY-MM-DD HH:mm:ss");
     document.getElementById("endTime").innerText = moment.tz(processData.EndTime, "UTC").tz(timeZone).format("YYYY-MM-DD HH:mm:ss");
     document.getElementById("plannedQuantity").innerText = processData.plannedProduction;
@@ -173,6 +176,15 @@ function updateGauge(gauge, value, valueElementId) {
         valueElement.innerText = value + '%';
     } else {
         console.error(`Element mit ID ${valueElementId} nicht gefunden`);
+    }
+}
+
+function updateOEELevel(level) {
+    const oeeLevelElement = document.getElementById("oeeLevelValue");
+    if (oeeLevelElement) {
+        oeeLevelElement.innerText = level;
+    } else {
+        console.error("Element mit ID oeeLevelValue nicht gefunden");
     }
 }
 
@@ -255,13 +267,11 @@ function updateInterruptionTable(data) {
     data.forEach(entry => {
         const row = document.createElement("tr");
         row.innerHTML = `
-            <td>${entry.ProcessOrderID}</td>
             <td>${entry.ProcessOrderNumber}</td>
             <td>${moment.tz(entry.Start, "UTC").tz(document.getElementById("timeZone").value).format("YYYY-MM-DD HH:mm:ss")}</td>
             <td>${moment.tz(entry.End, "UTC").tz(document.getElementById("timeZone").value).format("YYYY-MM-DD HH:mm:ss")}</td>
             <td>${entry.Differenz}</td>
             <td class="droppable" data-id="${entry.ProcessOrderID}" data-value="${entry.ID}">${entry.Reason || 'N/A'}</td>
-            <td>${entry.ManuellKorrektur || 'N/A'}</td>
         `;
         tableBody.appendChild(row);
     });
