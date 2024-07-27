@@ -10,12 +10,20 @@ const TIMEZONE = process.env.TIMEZONE || 'Europe/Berlin'; // Set timezone from .
 const oeeCalculator = new OEECalculator();
 let receivedMetrics = {};
 
+/**
+ * Update a metric with a new value.
+ * @param {string} name - The metric name.
+ * @param {number} value - The metric value.
+ */
 function updateMetric(name, value) {
     receivedMetrics[name] = value;
     oeeCalculator.updateData(name, value);
     oeeLogger.debug(`Metric updated: ${name} = ${value}`);
 }
 
+/**
+ * Process metrics, calculate OEE, and send data via WebSocket.
+ */
 async function processMetrics() {
     try {
         oeeLogger.info('Starting metrics processing.');
@@ -36,6 +44,7 @@ async function processMetrics() {
         oeeLogger.info(`Calculated Quality: ${quality}`);
         oeeLogger.info(`Calculated OEE: ${oee}% (Level: ${level})`);
 
+        // Calculate downtime
         let plannedDowntime;
         let unplannedDowntime;
         try {
@@ -47,9 +56,11 @@ async function processMetrics() {
             unplannedDowntime = 0;
         }
 
+        // Convert StartTime and EndTime to the desired timezone
         const startTimeInTimezone = moment.tz(StartTime, "UTC").tz(TIMEZONE).format();
         const endTimeInTimezone = moment.tz(EndTime, "UTC").tz(TIMEZONE).format();
 
+        // Prepare payload
         const roundedMetrics = {
             oee: Math.round(oee * 100) / 100,
             availability: Math.round(availability * 10000) / 100,
@@ -67,9 +78,11 @@ async function processMetrics() {
             }
         };
 
+        // Log summary
         oeeLogger.info(`OEE Metrics Summary: OEE=${roundedMetrics.oee}%, Availability=${roundedMetrics.availability}%, Performance=${roundedMetrics.performance}%, Quality=${roundedMetrics.quality}%, Level=${roundedMetrics.level}`);
         oeeLogger.info(`Process Data: ${JSON.stringify(roundedMetrics.processData)}`);
 
+        // Send OEE metrics to all connected WebSocket clients
         sendWebSocketMessage('oeeData', roundedMetrics);
 
         if (influxdb.url && influxdb.token && influxdb.org && influxdb.bucket) {
@@ -77,6 +90,7 @@ async function processMetrics() {
             oeeLogger.info('Metrics written to InfluxDB.');
         }
 
+        // Load chart data and send it via WebSocket
         let chartData;
         try {
             chartData = loadDataAndPrepareChart();
@@ -87,6 +101,7 @@ async function processMetrics() {
 
         sendWebSocketMessage('chartData', chartData);
 
+        // Log chart data
         oeeLogger.info(`Chart Data: ${JSON.stringify(chartData)}`);
 
     } catch (error) {
